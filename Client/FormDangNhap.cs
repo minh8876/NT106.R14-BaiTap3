@@ -1,10 +1,11 @@
+using SharedLibrary;
 using System;
-using System.Drawing;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using System.Data.Common;
+using System.Drawing;
 using System.IO;
 using System.Net.Sockets;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 
 namespace Client
@@ -25,22 +26,6 @@ namespace Client
             Controls.Add(khuVucKetNoi);
         }
 
-        public void XoaLoi()
-        {
-            lblLoi.Text = string.Empty;
-        }
-
-       
-        private void DatTrangThaiBan(bool dangBan)
-        {
-            btnDangNhap.Enabled = !dangBan;
-            btnThoat.Enabled = !dangBan;
-            lnkDangKy.Enabled = !dangBan;
-            khuVucKetNoi.Khoa(dangBan);
-            btnDangNhap.Text = dangBan ? "Đang xử lý..." : "Đăng nhập";
-            UseWaitCursor = dangBan;
-        }
-
         private bool DocCauHinhKetNoi()
         {
             if (!khuVucKetNoi.LayDiaChiVaCong(out string diaChi, out int cong, out string loi))
@@ -54,90 +39,55 @@ namespace Client
         }
         private async void btnDangNhap_Click_1(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtTenDangNhap.Text) || string.IsNullOrWhiteSpace(txtMatKhau.Text))
-            {
-                lblLoi.Text = "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.";
-                return;
-            }
-
             if (!DocCauHinhKetNoi())
             {
+                return; 
+            }
+
+            string username = txtTenDangNhap.Text.Trim();
+            string password = txtMatKhau.Text;
+
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            {
+                MessageBox.Show("Vui lòng nhập tài khoản và mật khẩu.");
                 return;
             }
 
-            lblLoi.Text = "";
-
-            DatTrangThaiBan(true);
-            khuVucKetNoi.DatTrangThai(TrangThaiKetNoi.DangKetNoi);
+            btnDangNhap.Enabled = false;
+            txtTenDangNhap.Enabled = false;
+            txtMatKhau.Enabled = false;
 
             try
             {
-                // TODO (thành viên làm phần mạng): mở kết nối TCP tới DiaChiMayChu:CongMayChu tại đây,
-                // rồi thay các lệnh truy vấn CSDL bên dưới bằng lệnh DANGNHAP gửi tới server.
+                var request = new LoginRequest { Username = username, Password = password };
 
-                var db = new TruyCapDuLieu();
+                LoginResponse response = await SimulateSendRequestAsync(request);
 
-                // 1. Fetch login credentials for password verification
-                var userRecord = await db.LayThongTinDangNhapAsync(txtTenDangNhap.Text);
-
-                // Security check: Same error message for invalid user or wrong password
-                if (userRecord == null || !MatKhau.KiemTra(txtMatKhau.Text, userRecord.Salt, userRecord.MatKhauBam))
+                if (response.IsSuccess)
                 {
-                    khuVucKetNoi.DatTrangThai(TrangThaiKetNoi.DaKetNoi);
-                    lblLoi.Text = "Tên đăng nhập hoặc mật khẩu không đúng";
+                    FormChinh mainForm = new FormChinh(response.UserInfo);
+                    this.Hide();
+                    mainForm.ShowDialog(); 
+
+                    this.Show();
+                    txtMatKhau.Clear();
+                }
+                else
+                {
+                    MessageBox.Show(response.ErrorMessage, "Lỗi đăng nhập", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     txtMatKhau.Clear();
                     txtMatKhau.Focus();
-                    return;
-                }
-
-                // 2. Update last login timestamp in database
-                await db.CapNhatLanDangNhapCuoiAsync(userRecord.UserId);
-
-                // 3. Fetch form display data (contains Email, NgayTao, LanDangNhapCuoi)
-                var formInfo = await db.LayThongTinFormChinhAsync(txtTenDangNhap.Text);
-
-                khuVucKetNoi.DatTrangThai(TrangThaiKetNoi.DaKetNoi);
-
-                if (formInfo != null)
-                {
-                    using (FormChinh frmChinh = new FormChinh(
-                        formInfo.HoTen,
-                        formInfo.TenDangNhap,
-                        formInfo.Email,
-                        formInfo.NgayTao,
-                        formInfo.LanDangNhapCuoi
-                    ))
-                    {
-                        this.Hide();
-                        frmChinh.ShowDialog();   // đóng lại khi bấm Đăng xuất hoặc nút đỏ
-                    }
-
-                    // Đăng xuất xong thì quay lại form Đăng nhập (trước đây là this.Close())
-                    // TODO (thành viên làm phần mạng): đóng kết nối TCP tại đây
-                    txtMatKhau.Clear();
-                    khuVucKetNoi.DatTrangThai(TrangThaiKetNoi.ChuaKetNoi);
-                    this.Show();
                 }
             }
-            catch (SocketException)
+            catch (Exception ex)
             {
-                khuVucKetNoi.DatTrangThai(TrangThaiKetNoi.ChuaKetNoi);
-                MessageBox.Show(ThongBaoLoiMang.KhongKetNoiDuoc, "Lỗi kết nối", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            catch (IOException)
-            {
-                khuVucKetNoi.DatTrangThai(TrangThaiKetNoi.ChuaKetNoi);
-                MessageBox.Show(ThongBaoLoiMang.MatKetNoi, "Lỗi kết nối", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            catch (DbException)
-            {
-                // Tạm giữ cho code cũ nối thẳng SQL Server; xoá khi chuyển hết truy vấn sang server
-                khuVucKetNoi.DatTrangThai(TrangThaiKetNoi.ChuaKetNoi);
-                MessageBox.Show(ThongBaoLoiMang.LoiCoSoDuLieu, "Lỗi kết nối", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.", "Lỗi mạng", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
-                DatTrangThaiBan(false);
+                btnDangNhap.Enabled = true;
+                txtTenDangNhap.Enabled = true;
+                txtMatKhau.Enabled = true;
             }
         }
 
@@ -163,7 +113,7 @@ namespace Client
                 DialogResult ketQua = frmDangKy.ShowDialog();
                 Show();
 
-                XoaLoi();
+                lblLoi.Text = string.Empty;
                 if (ketQua == DialogResult.OK)
                 {
                     txtTenDangNhap.Text = frmDangKy.TenDangNhapVuaTao;
@@ -177,14 +127,19 @@ namespace Client
             }
         }
 
+        private Task<LoginResponse> SimulateSendRequestAsync(LoginRequest request)
+        {
+            return Task.Delay(1000).ContinueWith(t => new LoginResponse { IsSuccess = false, ErrorMessage = "Đây chỉ là mô phỏng." });
+        }
+
         private void txtTenDangNhap_TextChanged(object sender, EventArgs e)
         {
-            XoaLoi();
+            lblLoi.Text = string.Empty;
         }
 
         private void txtMatKhau_TextChanged(object sender, EventArgs e)
         {
-            XoaLoi();
+            lblLoi.Text = string.Empty;
         }
     }
 }
