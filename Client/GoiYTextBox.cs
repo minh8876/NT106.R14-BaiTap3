@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace QuanLyNguoiDung
+namespace Client
 {
     internal static class GoiYTextBox
     {
