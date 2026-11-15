@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace QuanLyNguoiDung
+namespace Client
 {
     public partial class FormDangKy : Form
     {
