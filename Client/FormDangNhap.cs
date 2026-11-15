@@ -7,7 +7,7 @@ using System.IO;
 using System.Net.Sockets;
 
 
-namespace QuanLyNguoiDung
+namespace Client
 {
     public partial class FormDangNhap : Form
     {
