@@ -6,7 +6,6 @@
         {
             NhatKy.KhoiTao();
 
-            Console.ReadKey();
         }
     }
 }
