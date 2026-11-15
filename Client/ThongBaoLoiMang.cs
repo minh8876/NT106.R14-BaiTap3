@@ -1,4 +1,4 @@
-﻿namespace QuanLyNguoiDung
+﻿namespace Client
 {
     /// <summary>
     /// Các câu báo lỗi hiển thị cho người dùng. Người dùng chỉ thấy câu tiếng Việt,
