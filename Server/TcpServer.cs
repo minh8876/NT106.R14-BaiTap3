@@ -226,15 +226,8 @@ namespace Server
         private ServerResponse Logout(string clientId)
         {
             _sessions.TryRemove(clientId, out UserDto? user);
-            if (_clients.TryGetValue(clientId, out TcpClient? client))
-            {
-                _logoutHandler.Handle(clientId, user?.Username, _clients);
-            }
-            else
-            {
-                NhatKy.Ghi($"Client {clientId} ?ã ??ng xu?t và ng?t k?t n?i.");
-            }
-
+            _clients.TryRemove(clientId, out _);
+            NhatKy.Ghi($"Client {(user?.Username ?? clientId)} ?ã ??ng xu?t và ng?t k?t n?i.");
             return new ServerResponse { Success = true };
         }
 

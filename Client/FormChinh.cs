@@ -1,4 +1,5 @@
 using SharedLibrary;
+using SharedLibrary;
 using System.IO;
 using System.Net.Sockets;
 using System.Windows.Forms;
@@ -10,6 +11,7 @@ namespace Client
         private const string DINH_DANG_NGAY_GIO = "dd/MM/yyyy HH:mm";
         private readonly TcpClientService? _connection;
         private bool _daDongKetNoi = false;
+        private bool _daLayThongTin;
 
         public FormChinh()
         {
@@ -18,7 +20,8 @@ namespace Client
 
         public FormChinh(UserDto userInfo, TcpClientService connection) : this()
         {
-            this.FormClosing += FormChinh_FormClosing;
+            FormClosing += FormChinh_FormClosing;
+            Shown += FormChinh_Shown;
             _connection = connection;
 
             if (userInfo != null)
@@ -29,6 +32,28 @@ namespace Client
                 lblNgayTaoGiaTri.Text = "(chưa có dữ liệu)";
                 lblLanDangNhapGanNhatGiaTri.Text = "(đây là lần đăng nhập đầu tiên)";
             }
+        }
+
+        private async void FormChinh_Shown(object? sender, EventArgs e)
+        {
+            if (_daLayThongTin || _connection is null) return;
+            _daLayThongTin = true;
+
+            try
+            {
+                ServerResponse response = await _connection.SendAsync(new ClientRequest
+                {
+                    Operation = ProtocolOperations.GetUserInfo
+                });
+                if (response.Success && response.UserInfo is not null)
+                {
+                    lblTenDangNhapGiaTri.Text = response.UserInfo.Username;
+                    lblEmailGiaTri.Text = string.IsNullOrWhiteSpace(response.UserInfo.Email) ? "(chưa cập nhật)" : response.UserInfo.Email;
+                    lblXinChao.Text = $"Xin chào, {(string.IsNullOrWhiteSpace(response.UserInfo.FullName) ? response.UserInfo.Username : response.UserInfo.FullName)}";
+                }
+            }
+            catch (SocketException) { }
+            catch (IOException) { }
         }
 
         private async Task GuiLenhDangXuatVaDongKetNoiAsync()

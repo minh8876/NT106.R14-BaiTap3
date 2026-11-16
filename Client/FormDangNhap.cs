@@ -65,14 +65,12 @@ namespace Client
                     return;
                 }
 
-                await using (connection)
-                {
-                    FormChinh mainForm = new(response.UserInfo, connection);
-                    connection = null;
-                    Hide();
-                    mainForm.ShowDialog();
-                    Show();
-                }
+                TcpClientService establishedConnection = connection;
+                connection = null;
+                FormChinh mainForm = new(response.UserInfo, establishedConnection);
+                Hide();
+                mainForm.ShowDialog();
+                Show();
 
                 txtMatKhau.Clear();
             }
