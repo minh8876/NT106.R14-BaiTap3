@@ -35,9 +35,15 @@ Build all projects:
 dotnet build
 ```
 
-The current repository contains pre-existing compilation errors in `Client\FormDangKy.cs` involving the missing `TruyCapDuLieu` and `MatKhau` classes. The server project builds independently.
+The solution currently builds successfully. Existing nullable-reference and SQL client deprecation warnings may remain.
 
 ## Run the server
+
+Configure the SQL Server connection string without committing credentials:
+
+```powershell
+$env:NT106_CONNECTION_STRING = "your-local-connection-string"
+```
 
 Run with the default port `5000`:
 
@@ -52,6 +58,23 @@ dotnet run --project Server\Server.csproj -- 5001
 ```
 
 The server listens on all network interfaces (`0.0.0.0`). Press `Ctrl+C` to stop it gracefully.
+
+### UTF-8 console output
+
+If Vietnamese log messages appear as `?` or `ã`, configure the PowerShell console as UTF-8 before starting the server:
+
+```powershell
+chcp 65001
+[Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+```
+
+The active console code page should report `65001`:
+
+```powershell
+chcp
+```
 
 ## Run the client
 
@@ -77,6 +100,13 @@ Allow inbound TCP traffic for the selected port in Windows Firewall.
 - `Client` - Windows Forms client
 - `SharedLibrary` - Shared login and user data models
 
-## Current protocol note
+## Protocol
 
-The server supports the existing newline-delimited `DANGXUAT` command. The current login flow still contains simulated/incomplete communication, so a complete client login-to-server workflow requires the missing login protocol implementation.
+The Client and Server communicate using UTF-8 JSON messages with a 4-byte length prefix. Supported operations are:
+
+- `DANGKY` - register an account
+- `DANGNHAP` - authenticate a user
+- `LAYTHONGTIN` - retrieve authenticated user information
+- `DANGXUAT` - log out and close the session
+
+All database operations run on the Server. The Client never connects directly to SQL Server.
