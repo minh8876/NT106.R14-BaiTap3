@@ -1,20 +1,14 @@
 using SharedLibrary;
-using System;
-using System.Drawing;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using System.IO;
 using System.Net.Sockets;
-using System.Text;
-
+using System.Windows.Forms;
 
 namespace Client
 {
     public partial class FormChinh : Form
     {
         private const string DINH_DANG_NGAY_GIO = "dd/MM/yyyy HH:mm";
-        private readonly TcpClient _tcpClient;
-        private readonly StreamWriter _writer;
+        private readonly TcpClientService? _connection;
         private bool _daDongKetNoi = false;
 
         public FormChinh()
@@ -22,15 +16,10 @@ namespace Client
             InitializeComponent();
         }
 
-        public FormChinh(UserDto userInfo, TcpClient tcpClient = null) : this()
+        public FormChinh(UserDto userInfo, TcpClientService connection) : this()
         {
             this.FormClosing += FormChinh_FormClosing;
-            _tcpClient = tcpClient;
-
-            if (_tcpClient != null && _tcpClient.Connected)
-            {
-                _writer = new StreamWriter(_tcpClient.GetStream(), new UTF8Encoding(false)) { AutoFlush = true };
-            }
+            _connection = connection;
 
             if (userInfo != null)
             {
@@ -42,23 +31,6 @@ namespace Client
             }
         }
 
-        /*
-        private const string DINH_DANG_NGAY_GIO = "dd/MM/yyyy HH:mm";
-
-        public FormChinh(string hoTen, string tenDangNhap, string email,
-                         DateTime ngayTao, DateTime? lanDangNhapGanNhat) : this()
-        {
-
-            lblXinChao.Text = $"Xin chào, {hoTen}";
-            lblTenDangNhapGiaTri.Text = tenDangNhap;
-            lblEmailGiaTri.Text = string.IsNullOrWhiteSpace(email) ? "(chưa cập nhật)" : email;
-            lblNgayTaoGiaTri.Text = ngayTao.ToString(DINH_DANG_NGAY_GIO);
-            lblLanDangNhapGanNhatGiaTri.Text = lanDangNhapGanNhat.HasValue
-                ? lanDangNhapGanNhat.Value.ToString(DINH_DANG_NGAY_GIO)
-                : "(đây là lần đăng nhập đầu tiên)";
-        }
-        */
-
         private async Task GuiLenhDangXuatVaDongKetNoiAsync()
         {
             if (_daDongKetNoi) return;
@@ -66,17 +38,16 @@ namespace Client
 
             try
             {
-                if (_tcpClient != null && _tcpClient.Connected && _writer != null)
+                if (_connection is not null)
                 {
-                    await _writer.WriteLineAsync("DANGXUAT");
+                    await _connection.SendAsync(new ClientRequest { Operation = ProtocolOperations.Logout });
                 }
             }
             catch (SocketException) { }
             catch (IOException) { }
             finally
             {
-                try { _writer?.Dispose(); } catch { }
-                try { _tcpClient?.Close(); } catch { }
+                if (_connection is not null) await _connection.DisposeAsync();
             }
         }
 
@@ -85,16 +56,12 @@ namespace Client
             btnDangXuat.Enabled = false;
             await GuiLenhDangXuatVaDongKetNoiAsync();
             DialogResult = DialogResult.OK;
-            this.Close();
+            Close();
         }
 
         private async void FormChinh_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (!_daDongKetNoi)
-            {
-                await GuiLenhDangXuatVaDongKetNoiAsync();
-            }
+            await GuiLenhDangXuatVaDongKetNoiAsync();
         }
-
     }
 }
