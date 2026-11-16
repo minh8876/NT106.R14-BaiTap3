@@ -22,7 +22,8 @@ namespace Server
         public static void KhoiTao(string duongDanTep = null)
         {
         
-            Console.OutputEncoding = Encoding.UTF8;
+            Console.InputEncoding = new UTF8Encoding(false);
+            Console.OutputEncoding = new UTF8Encoding(false);
             NhatKy.duongDanTep = duongDanTep;
         }
 
