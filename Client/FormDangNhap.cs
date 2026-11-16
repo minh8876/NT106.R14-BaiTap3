@@ -1,145 +1,154 @@
-using SharedLibrary;
 using System;
-using System.Data.Common;
 using System.Drawing;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-
+using SharedProtocol;
 
 namespace Client
 {
     public partial class FormDangNhap : Form
     {
-     
-        private readonly KhuVucKetNoi khuVucKetNoi = new KhuVucKetNoi();
+        private TextBox txtServerIp;
+        private TextBox txtServerPort;
+        private TextBox txtUsername;
+        private TextBox txtPassword;
+        private Button btnLogin;
+        private Button btnOpenRegister;
+        private Label lblStatus;
 
-
-        public string DiaChiMayChu { get; private set; } = "127.0.0.1";
-        public int CongMayChu { get; private set; } = 5000;
         public FormDangNhap()
         {
-            InitializeComponent();
-            GoiYTextBox.Dat(txtTenDangNhap, "nguyenvana");
-            ClientSize = new Size(ClientSize.Width, ClientSize.Height + khuVucKetNoi.Height);
-            Controls.Add(khuVucKetNoi);
+            InitializeComponentCustom();
         }
 
-        private bool DocCauHinhKetNoi()
+        private void InitializeComponentCustom()
         {
-            if (!khuVucKetNoi.LayDiaChiVaCong(out string diaChi, out int cong, out string loi))
-            {
-                lblLoi.Text = loi;
-                return false;
-            }
-            DiaChiMayChu = diaChi;
-            CongMayChu = cong;
-            return true;
-        }
-        private async void btnDangNhap_Click_1(object sender, EventArgs e)
-        {
-            if (!DocCauHinhKetNoi())
-            {
-                return; 
-            }
+            this.Text = "Đăng Nhập - Quản Lý Người Dùng";
+            this.Size = new Size(420, 400);
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
 
-            string username = txtTenDangNhap.Text.Trim();
-            string password = txtMatKhau.Text;
+            int y = 20;
+            AddLabel("IP Server:", 30, ref y);
+            txtServerIp = new TextBox { Location = new Point(140, y), Width = 220, Text = "127.0.0.1" };
+            this.Controls.Add(txtServerIp);
+            y += 40;
+
+            AddLabel("Cổng Server:", 30, ref y);
+            txtServerPort = new TextBox { Location = new Point(140, y), Width = 220, Text = "8888" };
+            this.Controls.Add(txtServerPort);
+            y += 40;
+
+            AddLabel("Tên đăng nhập:", 30, ref y);
+            txtUsername = new TextBox { Location = new Point(140, y), Width = 220 };
+            this.Controls.Add(txtUsername);
+            y += 40;
+
+            AddLabel("Mật khẩu:", 30, ref y);
+            txtPassword = new TextBox { Location = new Point(140, y), Width = 220, PasswordChar = '*' };
+            this.Controls.Add(txtPassword);
+            y += 50;
+
+            btnLogin = new Button { Text = "Đăng Nhập", Location = new Point(140, y), Width = 100, Height = 30, BackColor = Color.LightSkyBlue };
+            btnLogin.Click += BtnLogin_Click;
+            this.Controls.Add(btnLogin);
+
+            btnOpenRegister = new Button { Text = "Đăng Ký", Location = new Point(250, y), Width = 110, Height = 30 };
+            btnOpenRegister.Click += (s, e) => { new FormDangKy().ShowDialog(); };
+            this.Controls.Add(btnOpenRegister);
+            y += 50;
+
+            lblStatus = new Label { Location = new Point(30, y), Width = 330, Text = "Trạng thái: Sẵn sàng", ForeColor = Color.DarkSlateGray };
+            this.Controls.Add(lblStatus);
+        }
+
+        private void AddLabel(string text, int x, ref int y)
+        {
+            Label lbl = new Label { Text = text, Location = new Point(x, y + 3), Width = 100 };
+            this.Controls.Add(lbl);
+        }
+
+        private async void BtnLogin_Click(object sender, EventArgs e)
+        {
+            string username = txtUsername.Text.Trim();
+            string password = txtPassword.Text;
 
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
-                MessageBox.Show("Vui lòng nhập tài khoản và mật khẩu.");
+                MessageBox.Show("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            btnDangNhap.Enabled = false;
-            txtTenDangNhap.Enabled = false;
-            txtMatKhau.Enabled = false;
+            string ip = txtServerIp.Text.Trim();
+            if (!int.TryParse(txtServerPort.Text.Trim(), out int port))
+            {
+                MessageBox.Show("Cổng server không hợp lệ!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            btnLogin.Enabled = false;
+            btnOpenRegister.Enabled = false;
+            lblStatus.Text = "Trạng thái: Đang kết nối tới server...";
+
+            TcpClient client = null;
+            NetworkStream stream = null;
 
             try
             {
-                var request = new LoginRequest { Username = username, Password = password };
+                client = new TcpClient();
+                await client.ConnectAsync(ip, port);
+                stream = client.GetStream();
 
-                LoginResponse response = await SimulateSendRequestAsync(request);
+                string request = $"{ProtocolCommands.DANGNHAP}|{username}|{password}";
+                await MessageFraming.SendMessageAsync(stream, request);
 
-                if (response.IsSuccess)
+                lblStatus.Text = "Trạng thái: Đang chờ phản hồi...";
+                string response = await MessageFraming.ReceiveMessageAsync(stream);
+
+                string[] parts = response.Split('|');
+                if (parts[0] == ProtocolResponses.SUCCESS && parts.Length >= 4)
                 {
-                    FormChinh mainForm = new FormChinh(response.UserInfo);
-                    this.Hide();
-                    mainForm.ShowDialog(); 
+                    string fullName = parts[1];
+                    string email = parts[2];
+                    string birthday = parts[3];
 
-                    this.Show();
-                    txtMatKhau.Clear();
+                    MessageBox.Show("Đăng nhập thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    
+                    this.Hide();
+                    FormMain mainForm = new FormMain(client, stream, username, fullName, email, birthday);
+                    mainForm.Closed += (s, args) => this.Close();
+                    mainForm.Show();
                 }
                 else
                 {
-                    MessageBox.Show(response.ErrorMessage, "Lỗi đăng nhập", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    txtMatKhau.Clear();
-                    txtMatKhau.Focus();
+                    MessageBox.Show("Tên đăng nhập hoặc mật khẩu không chính xác!", "Đăng nhập thất bại", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    txtPassword.Clear();
+                    txtPassword.Focus();
+                    stream?.Close();
+                    client?.Close();
                 }
             }
-            catch (Exception ex)
+            catch (SocketException)
             {
-                MessageBox.Show("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.", "Lỗi mạng", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Không thể kết nối đến server. Vui lòng kiểm tra lại IP/Cổng hoặc trạng thái Server.", "Lỗi kết nối", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                stream?.Close();
+                client?.Close();
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Đã xảy ra lỗi đường truyền mạng.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                stream?.Close();
+                client?.Close();
             }
             finally
             {
-                btnDangNhap.Enabled = true;
-                txtTenDangNhap.Enabled = true;
-                txtMatKhau.Enabled = true;
+                btnLogin.Enabled = true;
+                btnOpenRegister.Enabled = true;
+                lblStatus.Text = "Trạng thái: Sẵn sàng";
             }
-        }
-
-        private void btnThoat_Click_1(object sender, EventArgs e)
-        {
-            Application.Exit();
-        }
-
-        private void lnkDangKy_LinkClicked_1(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            
-            if (!DocCauHinhKetNoi())
-            {
-                return;
-            }
-
-            using (var frmDangKy = new FormDangKy())
-            {
-                frmDangKy.DiaChiMayChu = DiaChiMayChu;
-                frmDangKy.CongMayChu = CongMayChu;
-
-                Hide();
-                DialogResult ketQua = frmDangKy.ShowDialog();
-                Show();
-
-                lblLoi.Text = string.Empty;
-                if (ketQua == DialogResult.OK)
-                {
-                    txtTenDangNhap.Text = frmDangKy.TenDangNhapVuaTao;
-                    txtMatKhau.Clear();
-                    txtMatKhau.Focus();
-                }
-                else
-                {
-                    txtTenDangNhap.Focus();
-                }
-            }
-        }
-
-        private Task<LoginResponse> SimulateSendRequestAsync(LoginRequest request)
-        {
-            return Task.Delay(1000).ContinueWith(t => new LoginResponse { IsSuccess = false, ErrorMessage = "Đây chỉ là mô phỏng." });
-        }
-
-        private void txtTenDangNhap_TextChanged(object sender, EventArgs e)
-        {
-            lblLoi.Text = string.Empty;
-        }
-
-        private void txtMatKhau_TextChanged(object sender, EventArgs e)
-        {
-            lblLoi.Text = string.Empty;
         }
     }
 }

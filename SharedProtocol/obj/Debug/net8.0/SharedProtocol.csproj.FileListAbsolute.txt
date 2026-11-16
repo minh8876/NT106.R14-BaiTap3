@@ -1,0 +1,12 @@
+C:\Users\V\Downloads\BaiTap3_ClientServer_TCP (3)\BaiTap3_ClientServer_TCP\SharedProtocol\bin\Debug\net8.0\SharedProtocol.deps.json
+C:\Users\V\Downloads\BaiTap3_ClientServer_TCP (3)\BaiTap3_ClientServer_TCP\SharedProtocol\bin\Debug\net8.0\SharedProtocol.dll
+C:\Users\V\Downloads\BaiTap3_ClientServer_TCP (3)\BaiTap3_ClientServer_TCP\SharedProtocol\bin\Debug\net8.0\SharedProtocol.pdb
+C:\Users\V\Downloads\BaiTap3_ClientServer_TCP (3)\BaiTap3_ClientServer_TCP\SharedProtocol\obj\Debug\net8.0\SharedProtocol.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\V\Downloads\BaiTap3_ClientServer_TCP (3)\BaiTap3_ClientServer_TCP\SharedProtocol\obj\Debug\net8.0\SharedProtocol.AssemblyInfoInputs.cache
+C:\Users\V\Downloads\BaiTap3_ClientServer_TCP (3)\BaiTap3_ClientServer_TCP\SharedProtocol\obj\Debug\net8.0\SharedProtocol.AssemblyInfo.cs
+C:\Users\V\Downloads\BaiTap3_ClientServer_TCP (3)\BaiTap3_ClientServer_TCP\SharedProtocol\obj\Debug\net8.0\SharedProtocol.csproj.CoreCompileInputs.cache
+C:\Users\V\Downloads\BaiTap3_ClientServer_TCP (3)\BaiTap3_ClientServer_TCP\SharedProtocol\obj\Debug\net8.0\SharedProtocol.dll
+C:\Users\V\Downloads\BaiTap3_ClientServer_TCP (3)\BaiTap3_ClientServer_TCP\SharedProtocol\obj\Debug\net8.0\refint\SharedProtocol.dll
+C:\Users\V\Downloads\BaiTap3_ClientServer_TCP (3)\BaiTap3_ClientServer_TCP\SharedProtocol\obj\Debug\net8.0\SharedProtocol.pdb
+C:\Users\V\Downloads\BaiTap3_ClientServer_TCP (3)\BaiTap3_ClientServer_TCP\SharedProtocol\obj\Debug\net8.0\ref\SharedProtocol.dll
+C:\Users\V\Downloads\BaiTap3_ClientServer_TCP (3)\BaiTap3_ClientServer_TCP\SharedProtocol\obj\Debug\net8.0\SharedPr.AB2463D9.Up2Date
